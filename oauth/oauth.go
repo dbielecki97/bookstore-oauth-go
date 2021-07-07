@@ -25,26 +25,13 @@ var (
 	}).SetHostURL("http://localhost:8081")
 )
 
-type oAuthClient struct{}
-
-func NewClient() OAuth {
-	return &oAuthClient{}
-}
-
-type OAuth interface {
-	GetCallerId(*http.Request) int64
-	GetClientId(*http.Request) int64
-	IsPublic(*http.Request) bool
-	AuthenticateRequest(*http.Request) *errors.RestErr
-}
-
 type token struct {
 	ID       string `json:"id,omitempty"`
 	UserId   int64  `json:"user_id,omitempty"`
 	ClientId int64  `json:"client_id,omitempty"`
 }
 
-func (oc *oAuthClient) GetCallerId(req *http.Request) int64 {
+func GetCallerId(req *http.Request) int64 {
 	if req == nil {
 		return 0
 	}
@@ -56,7 +43,7 @@ func (oc *oAuthClient) GetCallerId(req *http.Request) int64 {
 	return callerId
 }
 
-func (oc *oAuthClient) GetClientId(req *http.Request) int64 {
+func GetClientId(req *http.Request) int64 {
 	if req == nil {
 		return 0
 	}
@@ -68,7 +55,7 @@ func (oc *oAuthClient) GetClientId(req *http.Request) int64 {
 	return clientId
 }
 
-func (oc *oAuthClient) IsPublic(req *http.Request) bool {
+func IsPublic(req *http.Request) bool {
 	if req == nil {
 		return true
 	}
@@ -76,7 +63,7 @@ func (oc *oAuthClient) IsPublic(req *http.Request) bool {
 	return req.Header.Get(headerXPublic) == "true"
 }
 
-func (oc *oAuthClient) AuthenticateRequest(req *http.Request) *errors.RestErr {
+func AuthenticateRequest(req *http.Request) *errors.RestErr {
 	if req == nil {
 		return nil
 	}
