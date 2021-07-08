@@ -3,7 +3,8 @@ package oauth
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dbielecki97/bookstore-oauth-go/oauth/errors"
+	"github.com/dbielecki97/bookstore-utils-go/errs"
+	"github.com/dbielecki97/bookstore-utils-go/logger"
 	"gopkg.in/resty.v1"
 	"net/http"
 	"strconv"
@@ -63,7 +64,7 @@ func IsPublic(req *http.Request) bool {
 	return req.Header.Get(headerXPublic) == "true"
 }
 
-func AuthenticateRequest(req *http.Request) *errors.RestErr {
+func AuthenticateRequest(req *http.Request) *errs.RestErr {
 	if req == nil {
 		return nil
 	}
@@ -98,17 +99,17 @@ func cleanRequest(req *http.Request) {
 	req.Header.Del(headerXCallerId)
 }
 
-func getAccessToken(tokenId string) (*token, *errors.RestErr) {
+func getAccessToken(tokenId string) (*token, *errs.RestErr) {
 	res, err := oauthRestClient.R().Get(fmt.Sprintf("/oauth/token/%s", tokenId))
 	if err != nil {
-		fmt.Println(err)
-		return nil, errors.NewInternalServerError("restclient error")
+		logger.Error("could not contact oauth remote server", err)
+		return nil, errs.NewInternalServerErr("could not contact oauth remote server", err)
 	}
 
 	if res.StatusCode() > 299 {
-		var restErr errors.RestErr
+		var restErr errs.RestErr
 		if err := json.Unmarshal(res.Body(), &restErr); err != nil {
-			return nil, errors.NewInternalServerError("invalid error interface when trying to get token")
+			return nil, errs.NewInternalServerErr("invalid error interface when trying to get token", err)
 		}
 
 		return nil, &restErr
@@ -117,7 +118,7 @@ func getAccessToken(tokenId string) (*token, *errors.RestErr) {
 	var t token
 	err = json.Unmarshal(res.Body(), &t)
 	if err != nil {
-		return nil, errors.NewInternalServerError("error when trying to unmarshal token response")
+		return nil, errs.NewInternalServerErr("error when trying to unmarshal token response", err)
 	}
 
 	return &t, nil
