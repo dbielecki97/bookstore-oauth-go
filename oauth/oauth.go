@@ -64,7 +64,7 @@ func IsPublic(req *http.Request) bool {
 	return req.Header.Get(headerXPublic) == "true"
 }
 
-func AuthenticateRequest(req *http.Request) *errs.RestErr {
+func AuthenticateRequest(req *http.Request) errs.RestErr {
 	if req == nil {
 		return nil
 	}
@@ -78,7 +78,7 @@ func AuthenticateRequest(req *http.Request) *errs.RestErr {
 
 	token, err := getAccessToken(tokenId)
 	if err != nil {
-		if err.StatusCode == http.StatusNotFound {
+		if err.StatusCode() == http.StatusNotFound {
 			return nil
 		}
 		return err
@@ -99,7 +99,7 @@ func cleanRequest(req *http.Request) {
 	req.Header.Del(headerXCallerId)
 }
 
-func getAccessToken(tokenId string) (*token, *errs.RestErr) {
+func getAccessToken(tokenId string) (*token, errs.RestErr) {
 	res, err := oauthRestClient.R().Get(fmt.Sprintf("/oauth/token/%s", tokenId))
 	if err != nil {
 		logger.Error("could not contact oauth remote server", err)
@@ -112,7 +112,7 @@ func getAccessToken(tokenId string) (*token, *errs.RestErr) {
 			return nil, errs.NewInternalServerErr("invalid error interface when trying to get token", err)
 		}
 
-		return nil, &restErr
+		return nil, restErr
 	}
 
 	var t token
