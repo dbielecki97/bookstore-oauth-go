@@ -24,12 +24,20 @@ var (
 	oauthRestClient = resty.NewWithClient(&http.Client{
 		Timeout: 200 * time.Millisecond,
 	}).SetHostURL("http://localhost:8081")
+	oauthServer restServer = &defaultRestServer{}
 )
 
 type token struct {
 	ID       string `json:"id,omitempty"`
 	UserId   int64  `json:"user_id,omitempty"`
 	ClientId int64  `json:"client_id,omitempty"`
+}
+
+type restServer interface {
+	getAccessToken(string) (*token, errs.RestErr)
+}
+
+type defaultRestServer struct {
 }
 
 func GetCallerId(req *http.Request) int64 {
@@ -76,7 +84,7 @@ func AuthenticateRequest(req *http.Request) errs.RestErr {
 		return nil
 	}
 
-	token, err := getAccessToken(tokenId)
+	token, err := oauthServer.getAccessToken(tokenId)
 	if err != nil {
 		if err.StatusCode() == http.StatusNotFound {
 			return nil
@@ -85,7 +93,7 @@ func AuthenticateRequest(req *http.Request) errs.RestErr {
 	}
 
 	req.Header.Add(headerXCallerId, fmt.Sprintf("%v", token.UserId))
-	req.Header.Add(headerXClientId, fmt.Sprintf("%v", token.UserId))
+	req.Header.Add(headerXClientId, fmt.Sprintf("%v", token.ClientId))
 
 	return nil
 }
@@ -99,7 +107,7 @@ func cleanRequest(req *http.Request) {
 	req.Header.Del(headerXCallerId)
 }
 
-func getAccessToken(tokenId string) (*token, errs.RestErr) {
+func (s *defaultRestServer) getAccessToken(tokenId string) (*token, errs.RestErr) {
 	res, err := oauthRestClient.R().Get(fmt.Sprintf("/oauth/token/%s", tokenId))
 	if err != nil {
 		logger.Error("could not contact oauth remote server", err)
@@ -107,7 +115,7 @@ func getAccessToken(tokenId string) (*token, errs.RestErr) {
 	}
 
 	if res.StatusCode() > 299 {
-		var restErr errs.RestErr
+		var restErr errs.Err
 		if err := json.Unmarshal(res.Body(), &restErr); err != nil {
 			return nil, errs.NewInternalServerErr("invalid error interface when trying to get token", err)
 		}
